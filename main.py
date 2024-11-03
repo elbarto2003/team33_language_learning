@@ -157,7 +157,7 @@ elif st.session_state.page == "Pronunciation Test":
             audio_file_path = audio_file.name
 
         # Display Spinner and Process Audio
-        with st.spinner("<div style='color: #ff6347; font-size: 20px;'>Assessing your pronunciation...</div>"):
+        with st.spinner("Assessing your pronunciation..."):
             assessment_result = process_audio(audio_file_path, st.session_state.sentence['text'])
 
         # Display Results with color coding
