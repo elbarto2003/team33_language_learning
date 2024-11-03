@@ -9,3 +9,4 @@ requests>=2.27.1
 pyopenssl
 pymongo
 django-environ
+matplotlib

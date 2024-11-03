@@ -7,6 +7,7 @@ import io
 from pymongo import MongoClient
 import datetime
 import random
+import matplotlib.pyplot as plt
 
 
 client = MongoClient("mongodb+srv://bmowinski2:4K4cR171KB6uLPVT@team33data.5p0rb.mongodb.net/?retryWrites=true&w=majority&appName=team33data")
@@ -47,6 +48,40 @@ def store_attempt_result(user_id, sentence_id, accuracy_score, fluency_score, co
         "timestamp": datetime.utcnow()
     }
     attempted_sentences_collection.insert_one(attempt_data)
+
+def plot_pronunciation_scores(overall_score, accuracy_score, fluency_score, completeness_score):
+    # Create figure and axes
+    fig, (ax_pie, ax_bar) = plt.subplots(1, 2, figsize=(10, 5))
+
+
+    # Overall Score: Circular chart
+    ax_pie.pie(
+        [overall_score, 100 - overall_score],
+        colors=["#4CAF50", "#E0E0E0"],
+        startangle=90,
+        wedgeprops={"edgecolor": "black"},
+    )
+    ax_pie.text(0, 0, f"{overall_score}", ha='center', va='center', fontsize=16, fontweight='bold')
+    ax_pie.set_title("Pronunciation Score", fontsize=12)
+    ax_pie.axis('equal')  # Ensure the pie chart is a circle
+
+
+    # Bar Chart for Breakdown
+    categories = ["Accuracy", "Fluency", "Completeness"]
+    scores = [accuracy_score, fluency_score, completeness_score]
+    ax_bar.barh(categories, scores, color="#4CAF50", edgecolor="black")
+    ax_bar.set_xlim(0, 100)
+    ax_bar.set_title("Score Breakdown", fontsize=12)
+    ax_bar.set_xlabel("Score")
+
+
+    # Display raw numbers next to bars
+    for i, score in enumerate(scores):
+        ax_bar.text(score + 2, i, f"{score}", va='center', fontsize=10, color="black")
+
+
+    plt.tight_layout()  # Adjust layout to prevent overlap
+    return fig
 
 
 def process_audio(audio_file_path, reference_text):
@@ -144,6 +179,7 @@ elif st.session_state.page == "Pronunciation Test":
         </div>
     """, unsafe_allow_html=True)
 
+
     # Recording Section
     st.markdown("<h3 style='color: #ff6347;'>Record Your Voice 🎤</h3>", unsafe_allow_html=True)
     audio_bytes = audio_recorder()
@@ -166,10 +202,21 @@ elif st.session_state.page == "Pronunciation Test":
         # Display Results with color coding
         st.markdown("<h3 style='color: #4682b4;'>Pronunciation Assessment Results</h3>", unsafe_allow_html=True)
         if isinstance(assessment_result, dict):
-            for key, value in assessment_result.items():
-                color = "#4CAF50" if value > 80 else "#FF6347" if value < 50 else "#FFA500"
-                st.markdown(f"<p style='font-size: 18px; color: {color};'><b>{key}:</b> {value}</p>",
-                            unsafe_allow_html=True)
+
+            fig = plot_pronunciation_scores(
+                assessment_result["Overall Pronunciation Score"],
+                assessment_result["Accuracy Score"],
+                assessment_result["Fluency Score"],
+                assessment_result["Completeness Score"]
+            )
+            st.pyplot(fig)
+
+            # Display raw numbers below the graph
+            st.markdown("<h4 style='color: #4682b4;'>Raw Scores:</h4>", unsafe_allow_html=True)
+            st.write(f"**Overall Pronunciation Score**: {assessment_result['Overall Pronunciation Score']}")
+            st.write(f"**Accuracy Score**: {assessment_result['Accuracy Score']}")
+            st.write(f"**Fluency Score**: {assessment_result['Fluency Score']}")
+            st.write(f"**Completeness Score**: {assessment_result['Completeness Score']}")
         else:
             st.error(assessment_result)
 
