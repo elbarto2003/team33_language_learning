@@ -8,6 +8,9 @@ users_collection = db.users
 sentences_collection = db.sentences
 attempted_sentences_collection = db.attempted_sentences
 
+# Access or create the vocabulary collection
+vocabulary_collection = db.vocabulary
+
 # Dummy data
 dummy_users = [
     {"name": "Alices Smith", "email": "alice@example.com"},
@@ -20,6 +23,20 @@ dummy_sentences = [
     {"text": "She sells seashells by the seashore."},
     {"text": "She sells seashells by the seashore."},
     {"text": "How can a clam cram in a clean cream can?"}
+]
+
+# Dummy vocabulary data
+dummy_vocabulary_words = [
+    {"word": "resilient"},
+    {"word": "diligent"},
+    {"word": "curiosity"},
+    {"word": "perseverance"},
+    {"word": "empathy"},
+    {"word": "ambition"},
+    {"word": "gratitude"},
+    {"word": "innovation"},
+    {"word": "creativity"},
+    {"word": "integrity"}
 ]
 
 dummy_attempted_sentences = [
@@ -61,6 +78,14 @@ def initialize_dummy_data():
         print("Dummy attempted sentences added.")
     else:
         print("Attempted sentences collection already has data.")
+
+    # Check and add vocabulary words
+    if vocabulary_collection.count_documents({}) == 0:
+        print("Adding dummy vocabulary words...")
+        vocabulary_ids = [vocabulary_collection.insert_one(word).inserted_id for word in dummy_vocabulary_words]
+        print("Dummy vocabulary words added:", vocabulary_ids)
+    else:
+        print("Vocabulary collection already has data.")
 
 # Run the initialization
 initialize_dummy_data()

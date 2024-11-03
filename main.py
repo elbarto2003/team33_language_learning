@@ -21,6 +21,9 @@ attempted_sentences_collection = db.attempted_sentences
 # Access or create the flashcards collection
 flashcards_collection = db.flashcards
 
+# Access or create the vocabulary collection
+vocabulary_collection = db.vocabulary
+
 
 # Fetch a random sentence from MongoDB
 def get_random_sentence():
@@ -92,8 +95,8 @@ if st.sidebar.button("Pronunciation Test"):
     st.session_state.page = "Pronunciation Test"
 if st.sidebar.button("Flashcards"):
     st.session_state.page = "Flashcards"
-if st.sidebar.button("Other Feature 2"):
-    st.session_state.page = "Other Feature 2"
+if st.sidebar.button("Vocabulary Builder"):
+    st.session_state.page = "Vocabulary Builder"
 
 # Display the selected page content
 if st.session_state.page == "Home":
@@ -103,7 +106,7 @@ if st.session_state.page == "Home":
 
         - **Pronunciation Test**: Evaluate your pronunciation and get feedback.
         - **Flashcards**: Test your knowledge with Flashcards!.
-        - **Other Feature 2**: Description of another feature.
+        - **Vocabulary Builder**: Vocabulary Builder.
 
         Choose a feature from the sidebar to get started!
     """)
@@ -231,12 +234,35 @@ elif st.session_state.page == "Flashcards":
     else:
         st.write("Click 'Start Review' to begin reviewing flashcards.")
 
+elif st.session_state.page == "Vocabulary Builder":
+    st.title("📖 Vocabulary Builder")
 
+    # Initialize session state for word index and daily word count
+    if "vocabulary_words" not in st.session_state:
+        st.session_state.vocabulary_words = list(vocabulary_collection.find({}))
+        random.shuffle(st.session_state.vocabulary_words)
+    if "word_index" not in st.session_state:
+        st.session_state.word_index = 0
+    if "daily_count" not in st.session_state:
+        st.session_state.daily_count = 0
 
+    # Display word if daily limit hasn't been reached
+    if st.session_state.daily_count < 5 and st.session_state.word_index < len(st.session_state.vocabulary_words):
+        word = st.session_state.vocabulary_words[st.session_state.word_index]["word"]
+        st.markdown(f"### New words today: **{word}**")
 
-elif st.session_state.page == "Other Feature 2":
-    st.title("Other Feature 2")
-    st.write("Description and content for Other Feature 2.")
+        # Button to go to the next word
+        if st.button("Next"):
+            st.session_state.word_index += 1
+            st.session_state.daily_count += 1
+    else:
+        st.write("That's all for today! Come back tomorrow for more words.")
+
+    # Reset daily limit at midnight
+    if datetime.datetime.now().hour == 0 and st.session_state.daily_count >= 5:
+        st.session_state.word_index = 0
+        st.session_state.daily_count = 0
+
 
 
 
