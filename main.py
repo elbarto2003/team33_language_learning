@@ -4,11 +4,46 @@ from pydub import AudioSegment
 import tempfile
 import azure.cognitiveservices.speech as speechsdk
 import io
+from pymongo import MongoClient
+import datetime
+import random
+
+# Replace <username>, <password>, and <cluster-url> with your credentials
+client = MongoClient("mongodb+srv://bmowinski2:4K4cR171KB6uLPVT@team33data.5p0rb.mongodb.net/?retryWrites=true&w=majority&appName=team33data")
+
+# Access the database (will be created on first insert)
+db = client.language_learning_app
+
+# Access the collections (will be created on first insert)
+users_collection = db.users
+sentences_collection = db.sentences
+attempted_sentences_collection = db.attempted_sentences
+
+# Fetch a random sentence from MongoDB
+def get_random_sentence():
+    sentences = list(sentences_collection.find({}))
+    return random.choice(sentences) if sentences else None
+
+def get_new_sentence_for_user(user_id):
+    attempted_sentence_ids = attempted_sentences_collection.find({"user_id": user_id}, {"sentence_id": 1})
+    attempted_ids = {attempt["sentence_id"] for attempt in attempted_sentence_ids}
+    new_sentence = sentences_collection.find_one({"_id": {"$nin": list(attempted_ids)}})
+    return new_sentence
+
+def store_attempt_result(user_id, sentence_id, accuracy_score, fluency_score, completeness_score, overall_score):
+    attempt_data = {
+        "user_id": user_id,
+        "sentence_id": sentence_id,
+        "accuracy_score": accuracy_score,
+        "fluency_score": fluency_score,
+        "completeness_score": completeness_score,
+        "overall_score": overall_score,
+        "timestamp": datetime.utcnow()
+    }
+    attempted_sentences_collection.insert_one(attempt_data)
 
 
-def process_audio(audio_file_path):
-    reference_text = "This is the text to evaluate for pronunciation."
-
+def process_audio(audio_file_path, reference_text):
     # Setting up azure speach sdk
     speech_config = speechsdk.SpeechConfig(subscription="136f4daa70b74cb8aca9bb595b33d4c5", region="eastus2")
     audio_config = speechsdk.audio.AudioConfig(filename=audio_file_path)
@@ -42,7 +77,6 @@ def process_audio(audio_file_path):
         cancellation_details = result.cancellation_details
         return f"Speech Recognition canceled: {cancellation_details.reason}, {cancellation_details.error_details}"
 
-
 # Initialize the session state for navigation
 if "page" not in st.session_state:
     st.session_state.page = "Home"
@@ -72,10 +106,25 @@ if st.session_state.page == "Home":
     """)
 
 elif st.session_state.page == "Pronunciation Test":
+
     st.title("🎙️ Pronunciation Assessment")
     st.markdown("""
     Record your voice, evaluate your pronunciation, and get feedback.
     """)
+
+    # Ensure st.session_state.sentence has a value
+    if "sentence" not in st.session_state:
+        st.session_state.sentence = get_random_sentence()
+
+    if st.session_state.sentence:
+        # Display the sentence if it was successfully fetched
+        st.markdown(
+            f"<h3>Practice Saying This Sentence:</h3><blockquote>{st.session_state.sentence['text']}</blockquote>",
+            unsafe_allow_html=True
+        )
+    else:
+        # Handle the case where no sentence is available
+        st.error("No sentence available in the database. Please check your database connection and content.")
 
     # Instructions
     st.markdown("""
@@ -106,7 +155,7 @@ elif st.session_state.page == "Pronunciation Test":
 
         # Display Spinner and Process Audio
         with st.spinner("<div style='color: #ff6347; font-size: 20px;'>Assessing your pronunciation...</div>"):
-            assessment_result = process_audio(audio_file_path)
+            assessment_result = process_audio(audio_file_path, st.session_state.sentence['text'])
 
         # Display Results with color coding
         st.markdown("<h3 style='color: #4682b4;'>Pronunciation Assessment Results</h3>", unsafe_allow_html=True)
@@ -125,4 +174,7 @@ elif st.session_state.page == "Flashcards":
 elif st.session_state.page == "Other Feature 2":
     st.title("Other Feature 2")
     st.write("Description and content for Other Feature 2.")
+
+
+
 
